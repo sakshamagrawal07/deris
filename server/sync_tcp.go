@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/sakshamagrawal07/deris/commands"
+	"github.com/sakshamagrawal07/deris/data"
 	"golang.org/x/sys/unix"
 )
 
@@ -70,7 +73,7 @@ func StartServer(address string) {
 	}
 
 	// Bind the socket to the address
-	sa := &unix.SockaddrInet4{Port: 8080}
+	sa := &unix.SockaddrInet4{Port: 7379}
 	copy(sa.Addr[:], net.ParseIP("0.0.0.0").To4())
 
 	err = unix.Bind(fd, sa)
@@ -92,6 +95,8 @@ func StartServer(address string) {
 		log.Fatalf("failed to set non-blocking mode: %v", err)
 	}
 
+    data.InitData()
+
 	// Event loop
 	clients := make(map[int]struct{})
 	for {
@@ -100,12 +105,17 @@ func StartServer(address string) {
 		fds = append(fds, unix.PollFd{Fd: int32(fd), Events: unix.POLLIN})
 
 		for clientFd := range clients {
+			unix.Write(clientFd, []byte(":> "))
 			fds = append(fds, unix.PollFd{Fd: int32(clientFd), Events: unix.POLLIN})
 		}
 
 		// Poll for events
 		n, err := unix.Poll(fds, -1)
 		if err != nil {
+			if err == unix.EINTR {
+				// Interrupted by a signal, retry the poll
+				continue
+			}
 			log.Fatalf("poll error: %v", err)
 		}
 
@@ -134,10 +144,11 @@ func StartServer(address string) {
 						delete(clients, clientFd)
 						continue
 					}
-					if n > 0 {
-						// Echo data back
-						unix.Write(clientFd, buf[:n])
-					} else {
+					cmd := string(buf[:n])
+					log.Printf("Received command from %d: %s", clientFd, cmd)
+					response := commands.ExecuteCommand(cmd)
+					unix.Write(clientFd, []byte(response))
+					if n <= 0 || response == "Bye\n"{
 						// Client closed connection
 						unix.Close(clientFd)
 						delete(clients, clientFd)

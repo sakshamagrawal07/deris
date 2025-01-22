@@ -15,7 +15,6 @@ func ReadCommand(c net.Conn) (string, error) {
 		return "", err
 	}
 	return string(buf[:n]), nil
-
 }
 
 func parseCommand(cmd string) []string {
