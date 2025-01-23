@@ -25,6 +25,11 @@ func parseCommand(cmd string) []string {
 	return strings.Fields(cmd)
 }
 
+func setErrorMessage(response* string,err* error,command string,commandFormat string){
+	*response = "ERR wrong number of arguments for '" + command + "' command\nRequired `" + commandFormat + "`\n"
+	*err = errors.New("ERR wrong number of arguments for '" + command + "' command\nRequired `" + commandFormat)
+}
+
 func ExecuteCommand(cmd string) (string, error) {
 	log.Println("Executing command")
 	parsedCommand := parseCommand(cmd)
@@ -42,26 +47,9 @@ func ExecuteCommand(cmd string) (string, error) {
 	cmd = parsedCommand[0]
 
 	switch cmd {
-	case "set":
-		if len(parsedCommand) != 3 {
-			response = "ERR wrong number of arguments for 'set' command\nRequired `set <key> <value>`\n"
-			err = errors.New("ERR wrong number of arguments for 'set' command\nRequired `set <key> <value>`")
-			break
-		}
-		data.Set(parsedCommand[1], parsedCommand[2])
-		response = "OK\n"
-	case "setnx":
-		if len(parsedCommand) != 3 {
-			response = "ERR wrong number of arguments for 'setnx' command\nRequired `setnx <key> <value>`\n"
-			err = errors.New("ERR wrong number of arguments for 'setnx' command\nRequired `setnx <key> <value>`")
-			break
-		}
-		data.Setnx(parsedCommand[1], parsedCommand[2])
-		response = "OK\n"
-	case "get":
+	case GET:
 		if len(parsedCommand) != 2 {
-			response = "ERR wrong number of arguments for 'get' command\nRequired `get <key>`\n"
-			err = errors.New("ERR wrong number of arguments for 'get' command\nRequired `get <key>`")
+			setErrorMessage(&response,&err,GET,GET_FORMAT)
 			break
 		}
 		value, ok := data.Get(parsedCommand[1])
@@ -70,18 +58,34 @@ func ExecuteCommand(cmd string) (string, error) {
 		} else {
 			response = "(nil)\n"
 		}
-	case "lpush":
+
+	case STRING_SET:
 		if len(parsedCommand) != 3 {
-			response = "ERR wrong number of arguments for 'lpush' command\nRequired `lpush <key> <value>`\n"
-			err = errors.New("ERR wrong number of arguments for 'lpush' command\nRequired `lpush <key> <value>`")
+			setErrorMessage(&response,&err,STRING_SET,STRING_SET_FORMAT)
+			break
+		}
+		data.Set(parsedCommand[1], parsedCommand[2])
+		response = "OK\n"
+
+	case STRING_SET_NOT_EXISTS:
+		if len(parsedCommand) != 3 {
+			setErrorMessage(&response,&err,STRING_SET_NOT_EXISTS,STRING_SET_NOT_EXISTS_FORMAT)
+			break
+		}
+		data.Setnx(parsedCommand[1], parsedCommand[2])
+		response = "OK\n"
+
+	case LIST_LEFT_PUSH:
+		if len(parsedCommand) != 3 {
+			setErrorMessage(&response,&err,LIST_LEFT_PUSH,LIST_LEFT_PUSH_FORMAT)
 			break
 		}
 		data.LPush(parsedCommand[1], parsedCommand[2])
 		response = "OK\n"
-	case "lpop":
+
+	case LIST_LEFT_POP:
 		if len(parsedCommand) != 2 {
-			response = "ERR wrong number of arguments for 'lpop' command\nRequired `lpop <key>`\n"
-			err = errors.New("ERR wrong number of arguments for 'lpop' command\nRequired `lpop <key>`")
+			setErrorMessage(&response,&err,LIST_LEFT_POP,LIST_LEFT_POP_FORMAT)
 			break
 		}
 		value, ok := data.LPop(parsedCommand[1])
@@ -90,18 +94,18 @@ func ExecuteCommand(cmd string) (string, error) {
 		} else {
 			response = "(nil)\n"
 		}
-	case "rpush":
+
+	case LIST_RIGHT_PUSH:
 		if len(parsedCommand) != 3 {
-			response = "ERR wrong number of arguments for 'rpush' command\nRequired `rpush <key> <value>`\n"
-			err = errors.New("ERR wrong number of arguments for 'rpush' command\nRequired `rpush <key> <value>`")
+			setErrorMessage(&response,&err,LIST_RIGHT_PUSH,LIST_RIGHT_PUSH_FORMAT)
 			break
 		}
 		data.RPush(parsedCommand[1], parsedCommand[2])
 		response = "OK\n"
-	case "rpop":
+
+	case LIST_RIGHT_POP:
 		if len(parsedCommand) != 2 {
-			response = "ERR wrong number of arguments for 'rpop' command\nRequired `rpop <key>`\n"
-			err = errors.New("ERR wrong number of arguments for 'rpop' command\nRequired `rpop <key>`")
+			setErrorMessage(&response,&err,LIST_RIGHT_POP,LIST_RIGHT_POP_FORMAT)
 			break
 		}
 		value, ok := data.RPop(parsedCommand[1])
@@ -110,19 +114,22 @@ func ExecuteCommand(cmd string) (string, error) {
 		} else {
 			response = "(nil)\n"
 		}
-	case "llen":
+
+	case LIST_LENGTH:
 		if len(parsedCommand) != 2 {
-			response = "ERR wrong number of arguments for 'llen' command\nRequired `llen <key>`\n"
-			err = errors.New("ERR wrong number of arguments for 'llen' command\nRequired `llen <key>`")
+			setErrorMessage(&response,&err,LIST_LENGTH,LIST_LENGTH_FORMAT)
 			break
 		}
 		length := data.LLen(parsedCommand[1])
 		response = strconv.Itoa(length) + "\n"
-	case "exit":
+
+	case EXIT:
 		response = "Bye\n"
 		err = errors.New("exit")
+
 	default:
 		response = "ERR unknown command '" + cmd + "'"
 	}
+
 	return response, err
 }
