@@ -95,7 +95,7 @@ func StartServer(address string) {
 		log.Fatalf("failed to set non-blocking mode: %v", err)
 	}
 
-    data.InitData()
+	data.InitData()
 
 	// Event loop
 	clients := make(map[int]struct{})
@@ -146,14 +146,18 @@ func StartServer(address string) {
 					}
 					cmd := string(buf[:n])
 					log.Printf("Received command from %d: %s", clientFd, cmd)
-					response := commands.ExecuteCommand(cmd)
+					response, err := commands.ExecuteCommand(cmd)
+					if(err != nil){
+						log.Println("Error executing command: ", err)
+					}
 					unix.Write(clientFd, []byte(response))
-					if n <= 0 || response == "Bye\n"{
+					if n <= 0 || response == "Bye\n" {
 						// Client closed connection
 						unix.Close(clientFd)
 						delete(clients, clientFd)
 						fmt.Printf("Connection closed: %d\n", clientFd)
 					}
+
 				}
 			}
 		}
