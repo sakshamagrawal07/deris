@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/sakshamagrawal07/deris/commands"
+	"github.com/sakshamagrawal07/deris/config"
 	"github.com/sakshamagrawal07/deris/data"
 	"golang.org/x/sys/unix"
 )
@@ -73,8 +74,8 @@ func StartServer(address string) {
 	}
 
 	// Bind the socket to the address
-	sa := &unix.SockaddrInet4{Port: 7379}
-	copy(sa.Addr[:], net.ParseIP("0.0.0.0").To4())
+	sa := &unix.SockaddrInet4{Port: config.Port}
+	copy(sa.Addr[:], net.ParseIP(config.Host).To4())
 
 	err = unix.Bind(fd, sa)
 	if err != nil {
