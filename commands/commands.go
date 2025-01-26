@@ -3,21 +3,20 @@ package commands
 import (
 	"errors"
 	"log"
-	"net"
 	"strconv"
 	"strings"
 
 	"github.com/sakshamagrawal07/deris/data"
 )
 
-func ReadCommand(c net.Conn) (string, error) {
-	var buf []byte = make([]byte, 512)
-	n, err := c.Read(buf[:])
-	if err != nil {
-		return "", err
-	}
-	return string(buf[:n]), nil
-}
+// func ReadCommand(c net.Conn) (string, error) {
+// 	var buf []byte = make([]byte, 512)
+// 	n, err := c.Read(buf[:])
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return string(buf[:n]), nil
+// }
 
 func parseCommand(cmd string) []string {
 	log.Println("Parsing command...")
@@ -25,7 +24,7 @@ func parseCommand(cmd string) []string {
 	return strings.Fields(cmd)
 }
 
-func setErrorMessage(response* string,err* error,command string,commandFormat string){
+func setErrorMessage(response *string, err *error, command string, commandFormat string) {
 	*response = "ERR wrong number of arguments for '" + command + "' command\nRequired `" + commandFormat + "`\n"
 	*err = errors.New("ERR wrong number of arguments for '" + command + "' command\nRequired `" + commandFormat)
 }
@@ -49,7 +48,7 @@ func ExecuteCommand(cmd string) (string, error) {
 	switch cmd {
 	case GET:
 		if len(parsedCommand) != 2 {
-			setErrorMessage(&response,&err,GET,GET_FORMAT)
+			setErrorMessage(&response, &err, GET, GET_FORMAT)
 			break
 		}
 		value, ok := data.Get(parsedCommand[1])
@@ -59,9 +58,30 @@ func ExecuteCommand(cmd string) (string, error) {
 			response = "(nil)\n"
 		}
 
+	case DELETE_KEY:
+		if len(parsedCommand) != 2 {
+			setErrorMessage(&response, &err, DELETE_KEY, DELETE_KEY_FORMAT)
+			break
+		}
+		data.Delete(parsedCommand[1])
+		response = "OK\n"
+
+	case EXPIRE_KEY:
+		if len(parsedCommand) != 3 {
+			setErrorMessage(&response, &err, EXPIRE_KEY, EXPIRE_KEY_FORMAT)
+			break
+		}
+		seconds, err := strconv.Atoi(parsedCommand[2])
+		if err != nil {
+			setErrorMessage(&response, &err, EXPIRE_KEY, EXPIRE_KEY_FORMAT)
+			break
+		}
+		data.Expire(parsedCommand[1], seconds)
+		response = "OK\n"
+
 	case STRING_SET:
 		if len(parsedCommand) != 3 {
-			setErrorMessage(&response,&err,STRING_SET,STRING_SET_FORMAT)
+			setErrorMessage(&response, &err, STRING_SET, STRING_SET_FORMAT)
 			break
 		}
 		data.Set(parsedCommand[1], parsedCommand[2])
@@ -69,7 +89,7 @@ func ExecuteCommand(cmd string) (string, error) {
 
 	case STRING_SET_NOT_EXISTS:
 		if len(parsedCommand) != 3 {
-			setErrorMessage(&response,&err,STRING_SET_NOT_EXISTS,STRING_SET_NOT_EXISTS_FORMAT)
+			setErrorMessage(&response, &err, STRING_SET_NOT_EXISTS, STRING_SET_NOT_EXISTS_FORMAT)
 			break
 		}
 		data.Setnx(parsedCommand[1], parsedCommand[2])
@@ -77,7 +97,7 @@ func ExecuteCommand(cmd string) (string, error) {
 
 	case LIST_LEFT_PUSH:
 		if len(parsedCommand) != 3 {
-			setErrorMessage(&response,&err,LIST_LEFT_PUSH,LIST_LEFT_PUSH_FORMAT)
+			setErrorMessage(&response, &err, LIST_LEFT_PUSH, LIST_LEFT_PUSH_FORMAT)
 			break
 		}
 		data.LPush(parsedCommand[1], parsedCommand[2])
@@ -85,7 +105,7 @@ func ExecuteCommand(cmd string) (string, error) {
 
 	case LIST_LEFT_POP:
 		if len(parsedCommand) != 2 {
-			setErrorMessage(&response,&err,LIST_LEFT_POP,LIST_LEFT_POP_FORMAT)
+			setErrorMessage(&response, &err, LIST_LEFT_POP, LIST_LEFT_POP_FORMAT)
 			break
 		}
 		value, ok := data.LPop(parsedCommand[1])
@@ -97,7 +117,7 @@ func ExecuteCommand(cmd string) (string, error) {
 
 	case LIST_RIGHT_PUSH:
 		if len(parsedCommand) != 3 {
-			setErrorMessage(&response,&err,LIST_RIGHT_PUSH,LIST_RIGHT_PUSH_FORMAT)
+			setErrorMessage(&response, &err, LIST_RIGHT_PUSH, LIST_RIGHT_PUSH_FORMAT)
 			break
 		}
 		data.RPush(parsedCommand[1], parsedCommand[2])
@@ -105,7 +125,7 @@ func ExecuteCommand(cmd string) (string, error) {
 
 	case LIST_RIGHT_POP:
 		if len(parsedCommand) != 2 {
-			setErrorMessage(&response,&err,LIST_RIGHT_POP,LIST_RIGHT_POP_FORMAT)
+			setErrorMessage(&response, &err, LIST_RIGHT_POP, LIST_RIGHT_POP_FORMAT)
 			break
 		}
 		value, ok := data.RPop(parsedCommand[1])
@@ -117,7 +137,7 @@ func ExecuteCommand(cmd string) (string, error) {
 
 	case LIST_LENGTH:
 		if len(parsedCommand) != 2 {
-			setErrorMessage(&response,&err,LIST_LENGTH,LIST_LENGTH_FORMAT)
+			setErrorMessage(&response, &err, LIST_LENGTH, LIST_LENGTH_FORMAT)
 			break
 		}
 		length := data.LLen(parsedCommand[1])

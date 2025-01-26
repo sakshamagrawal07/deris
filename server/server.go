@@ -6,25 +6,25 @@ import (
 	"net"
 
 	"github.com/sakshamagrawal07/deris/commands"
-	"github.com/sakshamagrawal07/deris/config"
 	"github.com/sakshamagrawal07/deris/data"
+	"github.com/sakshamagrawal07/deris/utils"
 	"golang.org/x/sys/unix"
 )
 
-var con_clients int = 0
+// var con_clients int = 0
 
-func respond(response string, c net.Conn) error {
-	if _, err := c.Write([]byte(response)); err != nil {
-		return err
-	}
-	return nil
-}
+// func RespondToClientWithFd(clientFd int, response string) error {
+// 	if _, err := unix.Write(clientFd, []byte(response)); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func closeConnection(c net.Conn) {
-	c.Close()
-	con_clients -= 1
-	log.Println("Client disconnected with address: ", c.RemoteAddr(), "concurrent clients: ", con_clients)
-}
+// func closeConnection(c net.Conn) {
+// 	c.Close()
+// 	con_clients -= 1
+// 	log.Println("Client disconnected with address: ", c.RemoteAddr(), "concurrent clients: ", con_clients)
+// }
 
 // func RunSyncTCPServer() {
 // 	log.Println("Starting synchronous TCP server on ", config.Host, ":", config.Port)
@@ -74,8 +74,8 @@ func StartServer(address string) {
 	}
 
 	// Bind the socket to the address
-	sa := &unix.SockaddrInet4{Port: config.Port}
-	copy(sa.Addr[:], net.ParseIP(config.Host).To4())
+	sa := &unix.SockaddrInet4{Port: Port}
+	copy(sa.Addr[:], net.ParseIP(Host).To4())
 
 	err = unix.Bind(fd, sa)
 	if err != nil {
@@ -106,7 +106,8 @@ func StartServer(address string) {
 		fds = append(fds, unix.PollFd{Fd: int32(fd), Events: unix.POLLIN})
 
 		for clientFd := range clients {
-			unix.Write(clientFd, []byte(":> "))
+			// unix.Write(clientFd, []byte(":> "))
+			utils.RespondToClientWithFd(clientFd, ":>")
 			fds = append(fds, unix.PollFd{Fd: int32(clientFd), Events: unix.POLLIN})
 		}
 
@@ -148,10 +149,11 @@ func StartServer(address string) {
 					cmd := string(buf[:n])
 					log.Printf("Received command from %d: %s", clientFd, cmd)
 					response, err := commands.ExecuteCommand(cmd)
-					if(err != nil){
+					if err != nil {
 						log.Println("Error executing command: ", err)
 					}
-					unix.Write(clientFd, []byte(response))
+					// unix.Write(clientFd, []byte(response))
+					utils.RespondToClientWithFd(clientFd, response)
 					if n <= 0 || response == "Bye\n" {
 						// Client closed connection
 						unix.Close(clientFd)
