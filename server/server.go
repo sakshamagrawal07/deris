@@ -106,8 +106,8 @@ func StartServer(address string) {
 		fds = append(fds, unix.PollFd{Fd: int32(fd), Events: unix.POLLIN})
 
 		for clientFd := range clients {
-			// unix.Write(clientFd, []byte(":> "))
-			utils.RespondToClientWithFd(clientFd, ":>")
+			unix.Write(clientFd, []byte(":> "))
+			// utils.RespondToClientWithFd(clientFd, ":>")
 			fds = append(fds, unix.PollFd{Fd: int32(clientFd), Events: unix.POLLIN})
 		}
 
@@ -148,7 +148,7 @@ func StartServer(address string) {
 					}
 					cmd := string(buf[:n])
 					log.Printf("Received command from %d: %s", clientFd, cmd)
-					response, err := commands.ExecuteCommand(cmd)
+					response, err := commands.ExecuteCommand(cmd,clientFd)
 					if err != nil {
 						log.Println("Error executing command: ", err)
 					}

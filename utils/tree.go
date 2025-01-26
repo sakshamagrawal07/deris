@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -171,6 +172,8 @@ func (node *RadixNode) PrintTree(height int) {
 // It returns true if the current node itself should be deleted, otherwise false.
 func (node *RadixNode) DeleteExpiredNodes() bool {
 	now := time.Now()
+
+	log.Println("Cron Job Start : ",now)
 
 	// Recursively check and delete expired nodes in the child nodes
 	for char, child := range node.nodes {

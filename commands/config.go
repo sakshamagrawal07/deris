@@ -35,6 +35,9 @@ const (
 
 	SUBSCRIBE_KEY        = "subscribe"       //Subscribe to a channel
 	SUBSCRIBE_KEY_FORMAT = "subscribe <key>" //Subscribe command format
+	
+	UNSUBSCRIBE_KEY        = "unsubscribe"       //Unsubscribe to a channel
+	UNSUBSCRIBE_KEY_FORMAT = "unsubscribe <key>" //Unsubscribe command format
 
 	PUBLISH_KEY        = "publish"              //Publish to a channel
 	PUBLISH_KEY_FORMAT = "publish <key> <value" //Publish command format

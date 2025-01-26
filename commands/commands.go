@@ -29,7 +29,7 @@ func setErrorMessage(response *string, err *error, command string, commandFormat
 	*err = errors.New("ERR wrong number of arguments for '" + command + "' command\nRequired `" + commandFormat)
 }
 
-func ExecuteCommand(cmd string) (string, error) {
+func ExecuteCommand(cmd string, fd int) (string, error) {
 	log.Println("Executing command")
 	parsedCommand := parseCommand(cmd)
 	log.Println("Parsed command: ", parsedCommand)
@@ -143,10 +143,36 @@ func ExecuteCommand(cmd string) (string, error) {
 		length := data.LLen(parsedCommand[1])
 		response = strconv.Itoa(length) + "\n"
 
+	case SUBSCRIBE_KEY:
+		if len(parsedCommand) != 2 {
+			setErrorMessage(&response, &err, SUBSCRIBE_KEY, SUBSCRIBE_KEY_FORMAT)
+			break
+		}
+		data.SubscribeToKey(parsedCommand[1], fd)
+		response = "OK\n"
+
+	case UNSUBSCRIBE_KEY:
+		if len(parsedCommand) != 2 {
+			setErrorMessage(&response, &err, UNSUBSCRIBE_KEY, UNSUBSCRIBE_KEY_FORMAT)
+			break
+		}
+		data.UnsubscribeToKey(parsedCommand[1], fd)
+		response = "OK\n"
+
+	case PUBLISH_KEY:
+		if len(parsedCommand) != 3 {
+			setErrorMessage(&response, &err, PUBLISH_KEY, PUBLISH_KEY_FORMAT)
+			break
+		}
+		err = data.PublishToKey(parsedCommand[1], parsedCommand[2])
+		if err != nil {
+			response = "(nil)\n"
+		} else {
+			response = "OK\n"
+		}
 	case EXIT:
 		response = "Bye\n"
-		err = errors.New("exit")
-
+		
 	default:
 		response = "ERR unknown command '" + cmd + "'"
 	}
