@@ -173,7 +173,7 @@ func (node *RadixNode) PrintTree(height int) {
 func (node *RadixNode) DeleteExpiredNodes() bool {
 	now := time.Now()
 
-	log.Println("Cron Job Start : ",now)
+	log.Println("Expire Nodes Cron Job Start : ",now)
 
 	// Recursively check and delete expired nodes in the child nodes
 	for char, child := range node.nodes {

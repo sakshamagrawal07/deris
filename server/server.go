@@ -97,6 +97,7 @@ func StartServer(address string) {
 	}
 
 	data.InitData()
+	utils.ReadDataFromFile(data.Data)
 
 	// Event loop
 	clients := make(map[int]struct{})
@@ -148,7 +149,7 @@ func StartServer(address string) {
 					}
 					cmd := string(buf[:n])
 					log.Printf("Received command from %d: %s", clientFd, cmd)
-					response, err := commands.ExecuteCommand(cmd,clientFd)
+					response, err := commands.ExecuteCommand(cmd, clientFd)
 					if err != nil {
 						log.Println("Error executing command: ", err)
 					}

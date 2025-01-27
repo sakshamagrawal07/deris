@@ -7,11 +7,11 @@ import (
 	"github.com/sakshamagrawal07/deris/utils"
 )
 
-var Data map[string]dataStruct
+var Data map[string]utils.DataStruct
 var expiringKeysTree utils.RadixNode
 
 func InitData() {
-	Data = make(map[string]dataStruct)
+	Data = make(map[string]utils.DataStruct)
 	expiringKeysTree = *utils.NewRadixNode("", time.Time{}, false)
 }
 
@@ -23,7 +23,7 @@ func Get(key string) ([]string, bool) {
 		}
 	}
 	if structBody, ok := Data[key]; ok {
-		return structBody.values, ok
+		return structBody.Values, ok
 	}
 	return nil, false
 }
@@ -37,8 +37,12 @@ func Expire(key string, seconds int) {
 	expiringKeysTree.Insert(key, expirationTime)
 }
 
-func deleteExpiredNodes() {
+func DeleteExpiredNodes() {
 	expiringKeysTree.DeleteExpiredNodes()
+}
+
+func BackupData() {
+	utils.WriteDataToFile(Data)
 }
 
 func Delete(key string) {
@@ -47,72 +51,72 @@ func Delete(key string) {
 }
 
 func Set(key string, value string) {
-	Data[key] = *newDataStruct([]string{value}, false, []int{})
+	Data[key] = *utils.NewDataStruct([]string{value}, false, []int{})
 }
 
 func Setnx(key string, value string) {
 	if _, ok := Data[key]; !ok {
-		Data[key] = *newDataStruct([]string{value}, false, []int{})
+		Data[key] = *utils.NewDataStruct([]string{value}, false, []int{})
 	}
 }
 
 func LPush(key string, value string) {
 	if structBody, ok := Data[key]; ok {
-		structBody.values = append(structBody.values, value)
+		structBody.Values = append(structBody.Values, value)
 	}
-	Data[key] = *newDataStruct(append(Data[key].values, value), false, []int{})
+	Data[key] = *utils.NewDataStruct(append(Data[key].Values, value), false, []int{})
 }
 
 func LPop(key string) (string, bool) {
-	if len(Data[key].values) == 0 {
+	if len(Data[key].Values) == 0 {
 		return "", false
 	}
 
 	structBody := Data[key]
 
-	value := structBody.values[0]
-	structBody.values = structBody.values[1:]
+	value := structBody.Values[0]
+	structBody.Values = structBody.Values[1:]
 	Data[key] = structBody
 	return value, true
 }
 
 func RPush(key string, value string) {
 	structBody := Data[key]
-	structBody.values = append(structBody.values, value)
+	structBody.Values = append(structBody.Values, value)
 	Data[key] = structBody
 }
 
 func RPop(key string) (string, bool) {
 	structBody := Data[key]
-	if len(structBody.values) == 0 {
+	if len(structBody.Values) == 0 {
 		return "", false
 	}
-	len := len(structBody.values) - 1
-	value := structBody.values[len]
-	structBody.values = structBody.values[:len]
+	len := len(structBody.Values) - 1
+	value := structBody.Values[len]
+	structBody.Values = structBody.Values[:len]
 	Data[key] = structBody
 	return value, true
 }
 
 func LLen(key string) int {
-	return len(Data[key].values)
+	return len(Data[key].Values)
 }
 
 func SubscribeToKey(key string, fd int) {
 	if structBody, ok := Data[key]; ok {
-		structBody.subscribed = true
-		structBody.subscribers = append(structBody.subscribers, fd)
+		structBody.Subscribed = true
+		structBody.Subscribers = append(structBody.Subscribers, fd)
 		Data[key] = structBody
 		return
 	}
-	Data[key] = *newDataStruct([]string{}, true, []int{fd})
+	Data[key] = *utils.NewDataStruct([]string{}, true, []int{fd})
 }
 
 func UnsubscribeToKey(key string, fd int) {
 	if structBody, ok := Data[key]; ok {
-		structBody.subscribers = utils.RemoveFromIntSlice(structBody.subscribers, fd)
-		if len(structBody.subscribers) == 0 {
-			structBody.subscribed = false
+		structBody.Subscribers = utils.RemoveFromIntSlice(structBody.Subscribers, fd)
+		if len(structBody.Subscribers) == 0 {
+			structBody.Subscribed = false
 		}
 		Data[key] = structBody
 	}
@@ -121,7 +125,7 @@ func UnsubscribeToKey(key string, fd int) {
 func PublishToKey(key string, value string) error {
 	if structBody, ok := Data[key]; ok {
 		RPush(key, value)
-		for _, subscriber := range structBody.subscribers {
+		for _, subscriber := range structBody.Subscribers {
 			utils.RespondToClientWithFd(subscriber, value)
 		}
 		return nil
