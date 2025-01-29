@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/sakshamagrawal07/deris/commands"
+	"github.com/sakshamagrawal07/deris/config"
 	"github.com/sakshamagrawal07/deris/data"
 	"github.com/sakshamagrawal07/deris/utils"
 	"golang.org/x/sys/unix"
@@ -66,6 +67,11 @@ import (
 // 	}
 // }
 
+func InitData()  {
+	data.InitData()
+	utils.ReadJsonDataFromFile(config.DataFilePath,data.Data)
+}
+
 func StartServer(address string) {
 	// Create a socket
 	fd, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, unix.IPPROTO_TCP)
@@ -74,8 +80,8 @@ func StartServer(address string) {
 	}
 
 	// Bind the socket to the address
-	sa := &unix.SockaddrInet4{Port: Port}
-	copy(sa.Addr[:], net.ParseIP(Host).To4())
+	sa := &unix.SockaddrInet4{Port: config.Port}
+	copy(sa.Addr[:], net.ParseIP(config.Host).To4())
 
 	err = unix.Bind(fd, sa)
 	if err != nil {
@@ -96,17 +102,17 @@ func StartServer(address string) {
 		log.Fatalf("failed to set non-blocking mode: %v", err)
 	}
 
-	data.InitData()
-	utils.ReadDataFromFile(data.Data)
+	// data.InitData()
+	// utils.ReadJsonDataFromFile(config.DataFilePath,data.Data)
 
 	// Event loop
-	clients := make(map[int]struct{})
+	utils.Clients = make(map[int]struct{})
 	for {
 		// Prepare the poll structure
 		var fds []unix.PollFd
 		fds = append(fds, unix.PollFd{Fd: int32(fd), Events: unix.POLLIN})
 
-		for clientFd := range clients {
+		for clientFd := range utils.Clients {
 			unix.Write(clientFd, []byte(":> "))
 			// utils.RespondToClientWithFd(clientFd, ":>")
 			fds = append(fds, unix.PollFd{Fd: int32(clientFd), Events: unix.POLLIN})
@@ -130,7 +136,7 @@ func StartServer(address string) {
 					log.Printf("failed to accept connection: %v", err)
 				} else {
 					unix.SetNonblock(clientFd, true)
-					clients[clientFd] = struct{}{}
+					utils.Clients[clientFd] = struct{}{}
 					fmt.Printf("New connection: %d\n", clientFd)
 				}
 			}
@@ -143,23 +149,19 @@ func StartServer(address string) {
 					n, err := unix.Read(clientFd, buf)
 					if err != nil {
 						log.Printf("read error: %v", err)
-						unix.Close(clientFd)
-						delete(clients, clientFd)
+						utils.CloseClientConnection(clientFd)
 						continue
 					}
 					cmd := string(buf[:n])
 					log.Printf("Received command from %d: %s", clientFd, cmd)
-					response, err := commands.ExecuteCommand(cmd, clientFd)
-					if err != nil {
-						log.Println("Error executing command: ", err)
+					if !config.MultiCommand {
+						commands.QueueCommand(cmd, clientFd)
+					} else {
+						commands.MultiCommandQueue(cmd,clientFd)
 					}
-					// unix.Write(clientFd, []byte(response))
-					utils.RespondToClientWithFd(clientFd, response)
-					if n <= 0 || response == "Bye\n" {
+					if n <= 0 {
 						// Client closed connection
-						unix.Close(clientFd)
-						delete(clients, clientFd)
-						fmt.Printf("Connection closed: %d\n", clientFd)
+						utils.CloseClientConnection(clientFd)
 					}
 
 				}

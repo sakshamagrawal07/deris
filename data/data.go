@@ -4,15 +4,22 @@ import (
 	"errors"
 	"time"
 
+	"github.com/sakshamagrawal07/deris/config"
 	"github.com/sakshamagrawal07/deris/utils"
 )
 
 var Data map[string]utils.DataStruct
 var expiringKeysTree utils.RadixNode
+// var CmdQueue bool
+var CommandQueue utils.Queue
+var MultiCommandQueue utils.Queue
 
 func InitData() {
 	Data = make(map[string]utils.DataStruct)
 	expiringKeysTree = *utils.NewRadixNode("", time.Time{}, false)
+	CommandQueue.Init()
+	MultiCommandQueue.Init()
+	// CmdQueue = false
 }
 
 func Get(key string) ([]string, bool) {
@@ -42,7 +49,7 @@ func DeleteExpiredNodes() {
 }
 
 func BackupData() {
-	utils.WriteDataToFile(Data)
+	utils.WriteDataToFileAsJson(config.DataFilePath,Data)
 }
 
 func Delete(key string) {
@@ -61,8 +68,11 @@ func Setnx(key string, value string) {
 }
 
 func LPush(key string, value string) {
-	if structBody, ok := Data[key]; ok {
-		structBody.Values = append(structBody.Values, value)
+	structBody, ok := Data[key]
+	if ok {
+		structBody.Values = append([]string{value},structBody.Values...)
+		Data[key] = structBody
+		return
 	}
 	Data[key] = *utils.NewDataStruct(append(Data[key].Values, value), false, []int{})
 }
@@ -81,9 +91,13 @@ func LPop(key string) (string, bool) {
 }
 
 func RPush(key string, value string) {
-	structBody := Data[key]
-	structBody.Values = append(structBody.Values, value)
-	Data[key] = structBody
+	structBody,ok := Data[key]
+	if ok {
+		structBody.Values = append(structBody.Values, value)
+		Data[key] = structBody
+		return
+	}
+	Data[key] = *utils.NewDataStruct(append(Data[key].Values,value),false,[]int{})
 }
 
 func RPop(key string) (string, bool) {

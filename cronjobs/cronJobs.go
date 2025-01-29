@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
+	"github.com/sakshamagrawal07/deris/config"
 	"github.com/sakshamagrawal07/deris/data"
-	"github.com/sakshamagrawal07/deris/server"
 )
 
 func ExpireDataCronJob() {
@@ -17,7 +17,7 @@ func ExpireDataCronJob() {
 	}
 
 	job, err := c.NewJob(
-		gocron.DurationJob(time.Duration(server.ExpireKeyCronTimer)*time.Second),
+		gocron.DurationJob(time.Duration(config.ExpireKeyCronTimer)*time.Second),
 		gocron.NewTask(data.DeleteExpiredNodes),
 	)
 
@@ -39,7 +39,7 @@ func BackupData() {
 	}
 
 	job, err := c.NewJob(
-		gocron.DurationJob(time.Duration(server.BackupCronTimer)*time.Second),
+		gocron.DurationJob(time.Duration(config.BackupCronTimer)*time.Second),
 		gocron.NewTask(data.BackupData),
 	)
 

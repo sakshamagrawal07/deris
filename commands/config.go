@@ -35,11 +35,34 @@ const (
 
 	SUBSCRIBE_KEY        = "subscribe"       //Subscribe to a channel
 	SUBSCRIBE_KEY_FORMAT = "subscribe <key>" //Subscribe command format
-	
+
 	UNSUBSCRIBE_KEY        = "unsubscribe"       //Unsubscribe to a channel
 	UNSUBSCRIBE_KEY_FORMAT = "unsubscribe <key>" //Unsubscribe command format
 
 	PUBLISH_KEY        = "publish"              //Publish to a channel
 	PUBLISH_KEY_FORMAT = "publish <key> <value" //Publish command format
 
+	MULTI_CMD        = "multi" //Queue multiple commands before execution
+	MULTI_CMD_FORMAT = "multi" //Multi command format
+
+	EXEC_CMD        = "execute" //Execute the multiple queued commands
+	EXEC_CMD_FORMAT = "execute" //Execute command format
+
+	DISCARD_CMD        = "discard" //Discard the queue of multiple commands
+	DISCARD_CMD_FORMAT = "discard" //Discard command format
+
 )
+
+var WriteCommands = []string{
+	EXPIRE_KEY,
+	DELETE_KEY,
+	STRING_SET,
+	STRING_SET_NOT_EXISTS,
+	LIST_LEFT_PUSH,
+	LIST_LEFT_POP,
+	LIST_RIGHT_PUSH,
+	LIST_RIGHT_POP,
+	SUBSCRIBE_KEY,
+	UNSUBSCRIBE_KEY,
+	PUBLISH_KEY,
+}

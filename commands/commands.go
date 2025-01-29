@@ -3,10 +3,13 @@ package commands
 import (
 	"errors"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/sakshamagrawal07/deris/config"
 	"github.com/sakshamagrawal07/deris/data"
+	"github.com/sakshamagrawal07/deris/utils"
 )
 
 // func ReadCommand(c net.Conn) (string, error) {
@@ -29,6 +32,71 @@ func setErrorMessage(response *string, err *error, command string, commandFormat
 	*err = errors.New("ERR wrong number of arguments for '" + command + "' command\nRequired `" + commandFormat)
 }
 
+func RecoverFromAOF() {
+	cmds, err := utils.ReadStringDataFromFile(config.LogFile)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, cmd := range cmds {
+		QueueCommand(cmd, -1)
+	}
+}
+
+func ClearAof() {
+	filename := config.LogFile
+
+	err := os.Remove(filename)
+	if err != nil {
+		log.Println("Error clearing aof ", err)
+		return
+	}
+	log.Println("AOF Cleared")
+}
+
+func QueueCommand(cmd string, fd int) {
+	
+	data.CommandQueue.Push(cmd, fd)
+}
+
+func MultiCommandQueue(cmd string, fd int) {
+	command := parseCommand(cmd)
+	if len(command) == 1 && (command[0] == DISCARD_CMD || command[0] == EXEC_CMD) {
+		resp, err := ExecuteCommand(cmd, fd)
+		if err != nil {
+			log.Println("Error executing command ",err)
+			utils.RespondToClientWithFd(fd,err.Error())
+		} else {
+			utils.RespondToClientWithFd(fd,resp)
+		}
+		return
+	}
+	data.MultiCommandQueue.Push(cmd, fd)
+}
+
+func ExecuteCommandsInQueue() {
+	// cmds := data.CommandQueue
+	log.Println("Command Queue Execution started")
+	for {
+		if !data.CommandQueue.IsEmpty() {
+			cmd, fd := data.CommandQueue.Pop()
+			resp, err := ExecuteCommand(cmd, fd)
+			if err != nil {
+				log.Println("Error executing command: ", err)
+			}
+			// unix.Write(clientFd, []byte(response))
+			if fd > 0 {
+				log.Println("Writing to ", fd)
+				utils.RespondToClientWithFd(fd, resp)
+			}
+			if resp == "Bye\n" {
+				// Client closed connection
+				utils.CloseClientConnection(fd)
+			}
+		}
+	}
+}
+
 func ExecuteCommand(cmd string, fd int) (string, error) {
 	log.Println("Executing command")
 	parsedCommand := parseCommand(cmd)
@@ -43,7 +111,17 @@ func ExecuteCommand(cmd string, fd int) (string, error) {
 		return response, err
 	}
 
+	inputCommand := cmd
+
 	cmd = parsedCommand[0]
+
+	if utils.Contains(WriteCommands, cmd) {
+		utils.AppendDataToFileAsString(config.LogFile, inputCommand)
+	}
+
+	if config.MultiCommand && cmd != DISCARD_CMD && cmd != EXEC_CMD {
+		return "queued", nil
+	}
 
 	switch cmd {
 	case GET:
@@ -170,9 +248,32 @@ func ExecuteCommand(cmd string, fd int) (string, error) {
 		} else {
 			response = "OK\n"
 		}
+	case MULTI_CMD:
+		if len(parsedCommand) != 1 {
+			setErrorMessage(&response, &err, MULTI_CMD, MULTI_CMD_FORMAT)
+			break
+		}
+		config.MultiCommand = true
+		response = "OK\n"
+	case DISCARD_CMD:
+		if len(parsedCommand) != 1 {
+			setErrorMessage(&response, &err, DISCARD_CMD, DISCARD_CMD_FORMAT)
+			break
+		}
+		config.MultiCommand = false
+		data.MultiCommandQueue.Clear()
+		response = "OK\n"
+	case EXEC_CMD:
+		if len(parsedCommand) != 1 {
+			setErrorMessage(&response, &err, EXEC_CMD, EXEC_CMD_FORMAT)
+			break
+		}
+		config.MultiCommand = false
+		data.CommandQueue.Copy(&data.MultiCommandQueue)
+		response = "OK\n"
 	case EXIT:
 		response = "Bye\n"
-		
+
 	default:
 		response = "ERR unknown command '" + cmd + "'"
 	}
