@@ -67,9 +67,13 @@ import (
 // 	}
 // }
 
-func InitData()  {
+func ServerSync() {
 	data.InitData()
-	utils.ReadJsonDataFromFile(config.DataFilePath,data.Data)
+	if config.AppendOnly {
+		commands.RecoverFromAOF()
+	} else {
+		utils.ReadJsonDataFromFile(config.DataFilePath, data.Data)
+	}
 }
 
 func StartServer(address string) {
@@ -157,7 +161,7 @@ func StartServer(address string) {
 					if !config.MultiCommand {
 						commands.QueueCommand(cmd, clientFd)
 					} else {
-						commands.MultiCommandQueue(cmd,clientFd)
+						commands.MultiCommandQueue(cmd, clientFd)
 					}
 					if n <= 0 {
 						// Client closed connection

@@ -2,6 +2,7 @@ package data
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/sakshamagrawal07/deris/config"
@@ -10,6 +11,7 @@ import (
 
 var Data map[string]utils.DataStruct
 var expiringKeysTree utils.RadixNode
+
 // var CmdQueue bool
 var CommandQueue utils.Queue
 var MultiCommandQueue utils.Queue
@@ -42,15 +44,21 @@ func Expire(key string, seconds int) {
 	}
 	expirationTime := time.Now().Add(time.Second * time.Duration(seconds))
 	expiringKeysTree.Insert(key, expirationTime)
+	log.Printf("Expiration time of key <%s> is %v", key, expirationTime)
+	log.Println("Current time : ", time.Now())
 }
 
 func DeleteExpiredNodes() {
-	expiringKeysTree.DeleteExpiredNodes()
+	deletedKeys, _ := expiringKeysTree.DeleteExpiredNodes("")
+	log.Println("Keys deleted from the tree : ", deletedKeys)
+	for _, key := range deletedKeys {
+		Delete(key)
+	}
 }
 
-func BackupData() {
-	utils.WriteDataToFileAsJson(config.DataFilePath,Data)
-}
+// func BackupData() {
+// 	utils.WriteDataToFileAsJson(config.DataFilePath, Data)
+// }
 
 func Delete(key string) {
 	delete(Data, key)
@@ -70,7 +78,7 @@ func Setnx(key string, value string) {
 func LPush(key string, value string) {
 	structBody, ok := Data[key]
 	if ok {
-		structBody.Values = append([]string{value},structBody.Values...)
+		structBody.Values = append([]string{value}, structBody.Values...)
 		Data[key] = structBody
 		return
 	}
@@ -91,13 +99,13 @@ func LPop(key string) (string, bool) {
 }
 
 func RPush(key string, value string) {
-	structBody,ok := Data[key]
+	structBody, ok := Data[key]
 	if ok {
 		structBody.Values = append(structBody.Values, value)
 		Data[key] = structBody
 		return
 	}
-	Data[key] = *utils.NewDataStruct(append(Data[key].Values,value),false,[]int{})
+	Data[key] = *utils.NewDataStruct(append(Data[key].Values, value), false, []int{})
 }
 
 func RPop(key string) (string, bool) {
@@ -145,4 +153,8 @@ func PublishToKey(key string, value string) error {
 		return nil
 	}
 	return errors.New("key ('" + key + "') not found")
+}
+
+func AsyncSaveDB() {
+	utils.WriteDataToFileAsJson(config.DataFilePath, Data)
 }

@@ -51,6 +51,9 @@ const (
 	DISCARD_CMD        = "discard" //Discard the queue of multiple commands
 	DISCARD_CMD_FORMAT = "discard" //Discard command format
 
+	ASYNC_SAVE_DB        = "bgsave" //Save sanpshot of data asynchronously
+	ASYNC_SAVE_DB_FORMAT = "bgsave" //Async Save command format
+
 )
 
 var WriteCommands = []string{

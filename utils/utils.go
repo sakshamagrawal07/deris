@@ -41,6 +41,11 @@ func RespondToClientWithFd(clientFd int, response string) error {
 
 func WriteDataToFileAsJson(filename string, data map[string]DataStruct) error {
 	log.Println("Backup data cron : ", time.Now())
+
+	if data == nil {
+		log.Println("Attempted to write data in : ",filename)
+		return errors.New("map is empty")
+	}
 	// dir,_ := os.Getwd()
 	// log.Println("Current Working Directory : ", dir)
 	// filename := config.DataFilePath

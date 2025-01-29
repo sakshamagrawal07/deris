@@ -1,2 +1,1 @@
-1st multi command executing twice
-expire key not working
+expire key cron not working if the expire time is after next cron job time

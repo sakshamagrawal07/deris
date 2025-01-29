@@ -1,4 +1,12 @@
-set name saksham
-expire name 10
-set name saksham
-expire name 100
+lpush name padfoot
+lpush name padfoot
+rpush name nikhil
+delete name
+lpush name saksham
+lpush name saksham
+lpush name nikhil
+delete name
+lpush name saksham
+lpush name saksham
+lpush name nikhil
+lpush name padfoot

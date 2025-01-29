@@ -12,3 +12,5 @@ var BackupCronTimer int
 var ClearAOF bool
 
 var MultiCommand bool = false
+
+var AppendOnly bool = false

@@ -56,6 +56,7 @@ func (node *RadixNode) Match(word string) (string, string, string) {
 func (node *RadixNode) Insert(word string, expirationTime time.Time) {
 	if node.prefix == word {
 		node.isLeaf = true // Case 1: The word matches the current node's prefix
+		// node.expirationTime = expirationTime
 		return
 	}
 
@@ -112,6 +113,9 @@ func (node *RadixNode) Find(word string) (time.Time, bool) {
 // Delete removes a word from the Radix Tree if it exists.
 // It adjusts the tree structure to ensure minimal nodes while maintaining correctness.
 func (node *RadixNode) Delete(word string) bool {
+	if len(word) <= 0 {
+		return false
+	}
 	child, exists := node.nodes[word[0]]
 	if !exists {
 		return false // Word doesn't exist
@@ -170,32 +174,41 @@ func (node *RadixNode) PrintTree(height int) {
 
 // DeleteExpiredNodes traverses the Radix Tree and removes nodes with an expirationTime less than time.Now().
 // It returns true if the current node itself should be deleted, otherwise false.
-func (node *RadixNode) DeleteExpiredNodes() bool {
+func (node *RadixNode) DeleteExpiredNodes(currentKey string) ([]string, bool) {
 	now := time.Now()
+	log.Println("Expire Nodes Cron Job Start:", now)
 
-	log.Println("Expire Nodes Cron Job Start : ",now)
+	var deletedKeys []string
 
-	// Recursively check and delete expired nodes in the child nodes
+	// Recursively check and delete expired nodes in child nodes
 	for char, child := range node.nodes {
-		if child.DeleteExpiredNodes() {
+		childKey := currentKey + child.prefix // Build the full key for this child
+		childDeletedKeys, shouldDelete := child.DeleteExpiredNodes(childKey)
+		
+		// Collect deleted keys from child nodes
+		deletedKeys = append(deletedKeys, childDeletedKeys...)
+
+		if shouldDelete {
+			// Remove the expired child from the parent
 			delete(node.nodes, char)
 		}
 	}
 
-	// Check if the current node itself should be deleted
+	// If the current node is a leaf and expired, collect its key
 	if node.isLeaf && node.expirationTime.Before(now) {
-		// Node is a leaf and expired
-		return true
+		deletedKeys = append(deletedKeys, currentKey)
+		return deletedKeys, true
 	}
 
-	// If the node has no children and is not a leaf, it can be deleted
+	// If the node has no children and is NOT a leaf, delete it
 	if len(node.nodes) == 0 && !node.isLeaf {
-		return true
+		return deletedKeys, true
 	}
 
-	// Optimize the tree if the current node has exactly one child
+	// Optimize the tree if the node has exactly one child
 	if len(node.nodes) == 1 && !node.isLeaf {
 		for _, child := range node.nodes {
+			// Merge the child into the current node
 			node.prefix += child.prefix
 			node.isLeaf = child.isLeaf
 			node.expirationTime = child.expirationTime
@@ -203,7 +216,7 @@ func (node *RadixNode) DeleteExpiredNodes() bool {
 		}
 	}
 
-	return false
+	return deletedKeys, false
 }
 
 // TestRadixTree runs various tests on the Radix Tree to verify its correctness.

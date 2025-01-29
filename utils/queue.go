@@ -1,6 +1,8 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type queueStruct struct {
 	cmd string
@@ -17,6 +19,8 @@ func (q *Queue) Init() {
 
 func (q *Queue) Push(val string, fd int) {
 	q.data = append(q.data, queueStruct{cmd: val, fd: fd})
+	// log.Println("Current Queue After Push : ")
+	// q.Print()
 }
 
 func (q *Queue) Pop() (string, int) {
@@ -25,6 +29,8 @@ func (q *Queue) Pop() (string, int) {
 	}
 	val := q.data[0]
 	q.data = q.data[1:]
+	// log.Println("Current Queue After Push : ")
+	// q.Print()
 	return val.cmd, val.fd
 }
 

@@ -31,24 +31,24 @@ func ExpireDataCronJob() {
 	c.Start()
 }
 
-func BackupData() {
-	c, err := gocron.NewScheduler()
-	if err != nil {
-		log.Fatal("Error starting the Backup Data cron job. Error : ", err)
-		return
-	}
+// func BackupData() {
+// 	c, err := gocron.NewScheduler()
+// 	if err != nil {
+// 		log.Fatal("Error starting the Backup Data cron job. Error : ", err)
+// 		return
+// 	}
 
-	job, err := c.NewJob(
-		gocron.DurationJob(time.Duration(config.BackupCronTimer)*time.Second),
-		gocron.NewTask(data.BackupData),
-	)
+// 	job, err := c.NewJob(
+// 		gocron.DurationJob(time.Duration(config.BackupCronTimer)*time.Second),
+// 		gocron.NewTask(data.BackupData),
+// 	)
 
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+// 	if err != nil {
+// 		log.Fatal(err)
+// 		return
+// 	}
 
-	log.Println("Backup data Cron Job Started.")
-	log.Printf("Cron Info : %+v\n", job.ID())
-	c.Start()
-}
+// 	log.Println("Backup data Cron Job Started.")
+// 	log.Printf("Cron Info : %+v\n", job.ID())
+// 	c.Start()
+// }

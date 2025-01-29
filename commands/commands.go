@@ -55,19 +55,20 @@ func ClearAof() {
 }
 
 func QueueCommand(cmd string, fd int) {
-	
+	log.Println("Queueing normally ", cmd)
 	data.CommandQueue.Push(cmd, fd)
 }
 
 func MultiCommandQueue(cmd string, fd int) {
+	log.Println("Queueing normally multi ", cmd)
 	command := parseCommand(cmd)
 	if len(command) == 1 && (command[0] == DISCARD_CMD || command[0] == EXEC_CMD) {
 		resp, err := ExecuteCommand(cmd, fd)
 		if err != nil {
-			log.Println("Error executing command ",err)
-			utils.RespondToClientWithFd(fd,err.Error())
+			log.Println("Error executing command ", err)
+			utils.RespondToClientWithFd(fd, err.Error())
 		} else {
-			utils.RespondToClientWithFd(fd,resp)
+			utils.RespondToClientWithFd(fd, resp)
 		}
 		return
 	}
@@ -115,7 +116,7 @@ func ExecuteCommand(cmd string, fd int) (string, error) {
 
 	cmd = parsedCommand[0]
 
-	if utils.Contains(WriteCommands, cmd) {
+	if config.AppendOnly && utils.Contains(WriteCommands, cmd) {
 		utils.AppendDataToFileAsString(config.LogFile, inputCommand)
 	}
 
@@ -270,6 +271,13 @@ func ExecuteCommand(cmd string, fd int) (string, error) {
 		}
 		config.MultiCommand = false
 		data.CommandQueue.Copy(&data.MultiCommandQueue)
+		response = "OK\n"
+	case ASYNC_SAVE_DB:
+		if len(parsedCommand) != 1 {
+			setErrorMessage(&response, &err, ASYNC_SAVE_DB, ASYNC_SAVE_DB_FORMAT)
+			break
+		}
+		go data.AsyncSaveDB()
 		response = "OK\n"
 	case EXIT:
 		response = "Bye\n"
