@@ -49,8 +49,12 @@ func Expire(key string, seconds int) {
 }
 
 func DeleteExpiredNodes() {
+	log.Println("DeleteExpiredNodes function start :")
+	expiringKeysTree.PrintTree(0)
 	deletedKeys, _ := expiringKeysTree.DeleteExpiredNodes("")
 	log.Println("Keys deleted from the tree : ", deletedKeys)
+	log.Println("DeleteExpiredNodes function after deleting expired nodes :")
+	expiringKeysTree.PrintTree(0)
 	for _, key := range deletedKeys {
 		Delete(key)
 	}

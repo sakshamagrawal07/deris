@@ -55,12 +55,16 @@ func ClearAof() {
 }
 
 func QueueCommand(cmd string, fd int) {
-	log.Println("Queueing normally ", cmd)
+	log.Println("Queueing normally start ")
+	data.CommandQueue.Print()
 	data.CommandQueue.Push(cmd, fd)
+	log.Println("Queueing normally end ")
+	data.CommandQueue.Print()
 }
 
 func MultiCommandQueue(cmd string, fd int) {
-	log.Println("Queueing normally multi ", cmd)
+	// log.Println("Queueing normally multi start ")
+	// data.MultiCommandQueue.Print()
 	command := parseCommand(cmd)
 	if len(command) == 1 && (command[0] == DISCARD_CMD || command[0] == EXEC_CMD) {
 		resp, err := ExecuteCommand(cmd, fd)
@@ -70,9 +74,16 @@ func MultiCommandQueue(cmd string, fd int) {
 		} else {
 			utils.RespondToClientWithFd(fd, resp)
 		}
+		// log.Println("In MultiCommandQueue after exec or discard : ")
+		// log.Println("Normal command Queue")
+		// data.CommandQueue.Print()
+		// log.Println("Multi command Queue")
+		// data.MultiCommandQueue.Print()
 		return
 	}
 	data.MultiCommandQueue.Push(cmd, fd)
+	// log.Println("Queueing normally multi end ")
+	// data.MultiCommandQueue.Print()
 }
 
 func ExecuteCommandsInQueue() {
@@ -80,6 +91,8 @@ func ExecuteCommandsInQueue() {
 	log.Println("Command Queue Execution started")
 	for {
 		if !data.CommandQueue.IsEmpty() {
+			log.Println("Command Queue")
+			data.CommandQueue.Print()
 			cmd, fd := data.CommandQueue.Pop()
 			resp, err := ExecuteCommand(cmd, fd)
 			if err != nil {

@@ -60,6 +60,10 @@ func (node *RadixNode) Insert(word string, expirationTime time.Time) {
 		return
 	}
 
+	if len(word) == 0 {
+		return
+	}
+
 	// Check if a child node starts with the first character of the word
 	if child, exists := node.nodes[word[0]]; !exists {
 		// Case 2: No matching child node, so create a new one
@@ -113,9 +117,10 @@ func (node *RadixNode) Find(word string) (time.Time, bool) {
 // Delete removes a word from the Radix Tree if it exists.
 // It adjusts the tree structure to ensure minimal nodes while maintaining correctness.
 func (node *RadixNode) Delete(word string) bool {
-	if len(word) <= 0 {
+	if len(word) == 0 {
 		return false
 	}
+
 	child, exists := node.nodes[word[0]]
 	if !exists {
 		return false // Word doesn't exist
@@ -126,34 +131,45 @@ func (node *RadixNode) Delete(word string) bool {
 	if remainingPrefix != "" {
 		return false // Word can't exist if there's leftover prefix
 	} else if remainingWord != "" {
+		log.Println("1)   Calling delete at ", remainingWord)
 		return child.Delete(remainingWord) // Continue deleting in child nodes
 	} else if !child.isLeaf {
 		return false // Node isn't a leaf, so the word doesn't exist
-	} else {
-		// Handle deletion of the node
-		if len(child.nodes) == 0 {
-			delete(node.nodes, word[0]) // Case 1: Node has no children, so delete it
-
-			// Merge the current node with its only child if applicable
-			if len(node.nodes) == 1 && !node.isLeaf {
-				for _, mergingNode := range node.nodes {
-					node.prefix += mergingNode.prefix
-					node.isLeaf = mergingNode.isLeaf
-					node.nodes = mergingNode.nodes
-				}
-			}
-		} else if len(child.nodes) > 1 {
-			child.isLeaf = false // Case 2: Node has multiple children, so mark it as non-leaf
-		} else {
-			// Case 3: Node has one child, merge it with the child
-			for _, mergingNode := range child.nodes {
-				child.prefix += mergingNode.prefix
-				child.isLeaf = mergingNode.isLeaf
-				child.nodes = mergingNode.nodes
-			}
-		}
-		return true
 	}
+
+	// If it's a leaf node, delete it
+	if len(child.nodes) == 0 {
+		delete(node.nodes, word[0]) // Remove from parent's children
+		log.Println("2)   Deleted ", word[0])
+	} else {
+		// If the node has children, just mark it as non-leaf
+		child.isLeaf = false
+	}
+
+	// Check if the root should be reset
+	if len(node.nodes) == 1 && node.prefix == "" && !node.isLeaf {
+		for index, singleChild := range node.nodes {
+			log.Println("Single Child : ",singleChild.prefix)
+			if singleChild.isLeaf {  
+				// Prevent making the root a valid key
+				break  
+			}
+	
+			log.Println(index, singleChild)
+			// Move child properties to root
+			node.prefix = singleChild.prefix
+			node.isLeaf = singleChild.isLeaf
+			node.nodes = singleChild.nodes
+		}
+	}
+
+	// If the root has no more children, reset everything
+	if len(node.nodes) == 0 {
+		node.prefix = ""
+		node.isLeaf = false
+	}
+
+	return true
 }
 
 // PrintTree recursively prints the structure of the Radix Tree, showing prefixes and leaf nodes.
@@ -184,7 +200,7 @@ func (node *RadixNode) DeleteExpiredNodes(currentKey string) ([]string, bool) {
 	for char, child := range node.nodes {
 		childKey := currentKey + child.prefix // Build the full key for this child
 		childDeletedKeys, shouldDelete := child.DeleteExpiredNodes(childKey)
-		
+
 		// Collect deleted keys from child nodes
 		deletedKeys = append(deletedKeys, childDeletedKeys...)
 
